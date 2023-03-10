@@ -11,13 +11,15 @@ const sleep = (ms) => {
 const insertToTable = async (item, client) => {
   const params = {
     TableName: 'soccer-news', // Replace with the name of your DynamoDB table
-    Item: item
+    Item: item,
+    ConditionExpression: 'attribute_not_exists(id)'
   };
 
   const command = new PutItemCommand(params);
 
   try {
     await client.send(command);
+    console.log(`Successfully added news ${item?.id?.S}.`);
   }
   catch (error) {
     console.log(error);
