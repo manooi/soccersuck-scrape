@@ -26,16 +26,22 @@ const insertToTable = async (item, client) => {
   }
 }
 
-const descriptionCrawler = async (topicId, title, client) => {
+const contentCrawler = async (topicId, title, client) => {
   const result = await axios.get(`https://www.soccersuck.com/boards/topic/${topicId}`);
   const htmlData = result.data;
   const $ = load(htmlData);
   const postDesc = $('.post_desc').text();
+  const imgUrls = $('.post_desc img').toArray();
+  let url = "";
+  if(imgUrls && imgUrls.length >= 2) {
+    url = imgUrls[1]?.attribs?.src ?? "";
+  }
 
   const item = {
     id: { "S": topicId },
     title: { "S": title },
-    content: { "S": postDesc }
+    content: { "S": postDesc },
+    imgUrl: {"S": url }
   };
 
   insertToTable(item, client);
@@ -75,7 +81,7 @@ export const handler = async (event) => {
 
     for (const news of latestNews) {
       await sleep(200);
-      descriptionCrawler(news.id, news.title, client);
+      contentCrawler(news.id, news.title, client);
     }
 
     await sleep(5000);
