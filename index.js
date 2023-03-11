@@ -2,6 +2,8 @@ import axios from "axios";
 import { load } from 'cheerio';
 import { DynamoDBClient, PutItemCommand } from "@aws-sdk/client-dynamodb";
 
+const today = new Date().toISOString().split('T')[0];
+
 const sleep = (ms) => {
   return new Promise((resolve) => {
     setTimeout(resolve, ms);
@@ -30,7 +32,7 @@ const contentCrawler = async (topicId, title, client) => {
   const result = await axios.get(`https://www.soccersuck.com/boards/topic/${topicId}`);
   const htmlData = result.data;
   const $ = load(htmlData);
-  const postDesc = $('.post_desc').text();
+  const postDesc = $('.post_desc').text().trim();
   const imgUrls = $('.post_desc img').toArray();
   let url = "";
   if(imgUrls && imgUrls.length >= 2) {
@@ -39,6 +41,7 @@ const contentCrawler = async (topicId, title, client) => {
 
   const item = {
     id: { "S": topicId },
+    crawledDate: {"S": today},
     title: { "S": title },
     content: { "S": postDesc },
     imgUrl: {"S": url }
@@ -69,7 +72,7 @@ export const handler = async (event) => {
     // Parse dataa
     const latestNews = [];
     latestnewsTrs.each((_, element) => {
-      const title = $(element).attr('title');
+      const title = $(element).attr('title').trim();
       const url = $(element).find('a').attr('href');
       const id = url.split("/").pop();
       latestNews.push({
