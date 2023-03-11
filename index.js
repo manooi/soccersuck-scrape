@@ -3,6 +3,7 @@ import { load } from 'cheerio';
 import { DynamoDBClient, PutItemCommand } from "@aws-sdk/client-dynamodb";
 
 const today = new Date().toISOString().split('T')[0];
+const client = new DynamoDBClient({ region: "ap-southeast-1" });
 
 const sleep = (ms) => {
   return new Promise((resolve) => {
@@ -10,11 +11,11 @@ const sleep = (ms) => {
   })
 }
 
-const insertToTable = async (item, client) => {
+const insertToTable = async (item) => {
   const params = {
     TableName: 'soccer-news', // Replace with the name of your DynamoDB table
     Item: item,
-    ConditionExpression: 'attribute_not_exists(id)'
+    // ConditionExpression: 'attribute_not_exists(id)'
   };
 
   const command = new PutItemCommand(params);
@@ -28,8 +29,8 @@ const insertToTable = async (item, client) => {
   }
 }
 
-const contentCrawler = async (topicId, title, client) => {
-  const result = await axios.get(`https://www.soccersuck.com/boards/topic/${topicId}`);
+const contentCrawler = async (news) => {
+  const result = await axios.get(`https://www.soccersuck.com/boards/topic/${news.id}`);
   const htmlData = result.data;
   const $ = load(htmlData);
   const postDesc = $('.post_desc').text().trim();
@@ -40,21 +41,20 @@ const contentCrawler = async (topicId, title, client) => {
   }
 
   const item = {
-    id: { "S": topicId },
+    id: { "S": news.id },
     crawledDate: {"S": today},
-    title: { "S": title },
+    title: { "S": news.title },
     content: { "S": postDesc },
-    imgUrl: {"S": url }
+    imgUrl: {"S": url },
+    category: {"S": news.category}
   };
 
-  insertToTable(item, client);
+  insertToTable(item);
 }
 
 
 export const handler = async (event) => {
   try {
-    // DynamoDB Client
-    const client = new DynamoDBClient({ region: "ap-southeast-1" });
 
     // Get raw html
     const response = await axios.request({
@@ -75,16 +75,19 @@ export const handler = async (event) => {
       const title = $(element).attr('title').trim();
       const url = $(element).find('a').attr('href');
       const id = url.split("/").pop();
+      const category = $(element).find('img').attr('src').split("/").pop().split(".")[0];
+
       latestNews.push({
         title: title,
         url: url,
-        id: id
+        id: id,
+        category: category
       });
     });
 
     for (const news of latestNews) {
       await sleep(200);
-      contentCrawler(news.id, news.title, client);
+      contentCrawler(news);
     }
 
     await sleep(5000);
