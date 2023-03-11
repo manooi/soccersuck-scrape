@@ -15,7 +15,7 @@ const insertToTable = async (item) => {
   const params = {
     TableName: 'soccer-news', // Replace with the name of your DynamoDB table
     Item: item,
-    // ConditionExpression: 'attribute_not_exists(id)'
+    ConditionExpression: 'attribute_not_exists(id)'
   };
 
   const command = new PutItemCommand(params);
