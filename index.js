@@ -29,24 +29,45 @@ const insertToTable = async (item) => {
   }
 }
 
+function isNews(post_desc) {
+  // check if there is span tag, length should be > 0
+  return post_desc.find('span')?.length > 0;
+}
+
+
+function crawlNews(post_desc) {
+  // div span
+  return post_desc.find('span').text().trim();
+}
+
+function crawlGameResult($) {
+  try {
+    return $('.post_desc > div').text().split("\n").map((i) => i.trim()).filter((i) => i)[0];
+  }
+  catch {
+    return "";
+  }
+}
+
 const contentCrawler = async (news) => {
   const result = await axios.get(`https://www.soccersuck.com/boards/topic/${news.id}`);
   const htmlData = result.data;
   const $ = load(htmlData);
-  const postDesc = $('.post_desc').text().trim();
+  const $postDesc = $('.post_desc');
+  const postDesc = isNews($postDesc) ? crawlNews($postDesc) : crawlGameResult($);
   const imgUrls = $('.post_desc img').toArray();
   let url = "";
-  if(imgUrls && imgUrls.length >= 2) {
+  if (imgUrls && imgUrls.length >= 2) {
     url = imgUrls[1]?.attribs?.src ?? "";
   }
 
   const item = {
     id: { "S": news.id },
-    crawledDate: {"S": today},
+    crawledDate: { "S": today },
     title: { "S": news.title },
     content: { "S": postDesc },
-    imgUrl: {"S": url },
-    category: {"S": news.category}
+    imgUrl: { "S": url },
+    category: { "S": news.category }
   };
 
   insertToTable(item);
@@ -79,7 +100,6 @@ export const handler = async (event) => {
 
       latestNews.push({
         title: title,
-        url: url,
         id: id,
         category: category
       });
