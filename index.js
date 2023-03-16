@@ -2,7 +2,7 @@ import axios from "axios";
 import { load } from 'cheerio';
 import { DynamoDBClient, PutItemCommand } from "@aws-sdk/client-dynamodb";
 
-const today = new Date().toISOString().split('T')[0];
+const today = new Date(new Date().getTime() - (7 * 60 * 60 * 1000) ).toISOString().split('T')[0];
 const client = new DynamoDBClient({ region: "ap-southeast-1" });
 
 const sleep = (ms) => {
